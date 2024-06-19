@@ -5,7 +5,7 @@ export default function Credit() {
     <div class="credit">
       <p>
         Coded by
-        <a href="https://www.shecodes.io/graduates/73033-chaimae-lamirine">
+        <a>
           {" "}
           Narendra Sonawane
         </a>
