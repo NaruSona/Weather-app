@@ -2,18 +2,41 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import SearchEngine from "./SearchEngine";
 import Forecast from "./Forecast";
+import FavoriteList from "./FavoriteList"; // Import FavoriteList component
 
 import "../styles.css";
-import '@fortawesome/fontawesome-free/css/all.min.css';
-
+import "@fortawesome/fontawesome-free/css/all.min.css";
 
 function App() {
-  const [query, setQuery] = useState();
+  const [query, setQuery] = useState("");
   const [weather, setWeather] = useState({
     loading: true,
     data: {},
-    error: false
+    error: false,
   });
+  const [favorites, setFavorites] = useState([]);
+
+  useEffect(() => {
+    const storedFavorites = JSON.parse(localStorage.getItem("favorites")) || [];
+    setFavorites(storedFavorites);
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const apiKey = "b03a640e5ef6980o4da35b006t5f2942";
+      const url = `https://api.shecodes.io/weather/v1/current?query=Rabat&key=${apiKey}`;
+
+      try {
+        const response = await axios.get(url);
+        setWeather({ data: response.data, loading: false, error: false });
+      } catch (error) {
+        setWeather({ data: {}, loading: false, error: true });
+        console.log("error", error);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const toDate = () => {
     const months = [
@@ -27,8 +50,8 @@ function App() {
       "August",
       "September",
       "October",
-      "Nocvember",
-      "December"
+      "November",
+      "December",
     ];
     const days = [
       "Sunday",
@@ -37,7 +60,7 @@ function App() {
       "Wednesday",
       "Thursday",
       "Friday",
-      "Saturday"
+      "Saturday",
     ];
 
     const currentDate = new Date();
@@ -55,42 +78,40 @@ function App() {
       const apiKey = "b03a640e5ef6980o4da35b006t5f2942";
       const url = `https://api.shecodes.io/weather/v1/current?query=${query}&key=${apiKey}`;
 
-      await axios
-        .get(url)
-        .then((res) => {
-          console.log("res", res);
-          setWeather({ data: res.data, loading: false, error: false });
-        })
-        .catch((error) => {
-          setWeather({ ...weather, data: {}, error: true });
-          setQuery("");
-          console.log("error", error);
-        });
+      try {
+        const response = await axios.get(url);
+        setWeather({ data: response.data, loading: false, error: false });
+      } catch (error) {
+        setWeather({ ...weather, data: {}, error: true });
+        console.log("error", error);
+      }
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const apiKey = "b03a640e5ef6980o4da35b006t5f2942";
-      const url = `https://api.shecodes.io/weather/v1/current?query=Rabat&key=${apiKey}`;
+  const addToFavorites = () => {
+    
+    if (!favorites.find((fav) => fav.city === weather.data.city)) {
+      const newFavorite = {
+        city: weather.data.city,
+        country: weather.data.country,
+        temperature: weather.data.temperature.current, // Add temperature to favorite
+      };
+      const updatedFavorites = [...favorites, newFavorite];
+      setFavorites(updatedFavorites);
+      localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+    }
+  };
 
-      try {
-        const response = await axios.get(url);
-
-        setWeather({ data: response.data, loading: false, error: false });
-      } catch (error) {
-        setWeather({ data: {}, loading: false, error: true });
-        console.log("error", error);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const removeFromFavorites = (cityToRemove) => {
+    const updatedFavorites = favorites.filter(
+      (fav) => fav.city !== cityToRemove
+    );
+    setFavorites(updatedFavorites);
+    localStorage.setItem("favorites", JSON.stringify(updatedFavorites));
+  };
 
   return (
     <div className="App">
-
-      {/* SearchEngine component */}
       <SearchEngine query={query} setQuery={setQuery} search={search} />
 
       {weather.loading && (
@@ -106,17 +127,22 @@ function App() {
           <br />
           <br />
           <span className="error-message">
-            <span style={{ fontFamily: "font" }}>
-              Sorry city not found, please try again.
-            </span>
+            Sorry city not found, please try again.
           </span>
         </>
       )}
 
-      {weather && weather.data && weather.data.condition && (
-        // Forecast component
-        <Forecast weather={weather} toDate={toDate} />
+      {weather.data && weather.data.condition && (
+        <>
+          <Forecast weather={weather} toDate={toDate} />
+          <button onClick={addToFavorites}>Add to Favorites</button>
+        </>
       )}
+
+      <FavoriteList
+        favorites={favorites}
+        removeFromFavorites={removeFromFavorites}
+      />
     </div>
   );
 }
